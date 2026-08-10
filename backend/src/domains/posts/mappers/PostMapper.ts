@@ -24,6 +24,7 @@ export class PostMapper {
 
   static toPersistenceUpdate(post: Post): Prisma.PostUpdateInput {
     return {
+      title: post.title,
       description: post.description,
       updatedAt: post.updatedAt,
     }

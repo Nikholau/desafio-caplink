@@ -20,8 +20,8 @@ export class EditPostUseCase {
 
     post.edit(input.title, input.description)
 
-    await this.producer.publishPostEdited(post)
     const updated = await this.repo.update(post)
+    await this.producer.publishPostEdited(updated)
 
     return updated
   }

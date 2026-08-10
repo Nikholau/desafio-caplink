@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useSubscription } from '@apollo/client'
 import {
@@ -27,15 +27,6 @@ export function PostDetailPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-
-  // Seed the form once from the post that was loaded when this page mounted.
-  useEffect(() => {
-    if (data?.post) {
-      setTitle(data.post.title)
-      setDescription(data.post.description)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading post…</p>
   if (error || !data?.post)
@@ -93,7 +84,11 @@ export function PostDetailPage() {
             </h1>
             <button
               type="button"
-              onClick={() => setIsEditing(true)}
+              onClick={() => {
+                setTitle(post.title)
+                setDescription(post.description)
+                setIsEditing(true)
+              }}
               className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
             >
               Edit

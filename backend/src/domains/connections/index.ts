@@ -3,7 +3,7 @@ import { CONNECTION_REGISTRY } from './core/ports/IConnectionRegistry.js'
 import { InMemoryConnectionRegistry } from './repositories/InMemoryConnectionRegistry.js'
 
 export function registerConnectionsDomain(container: DependencyContainer): void {
-  container.register(CONNECTION_REGISTRY, { useClass: InMemoryConnectionRegistry })
+  container.registerSingleton(CONNECTION_REGISTRY, InMemoryConnectionRegistry)
 }
 
 // No RabbitMQ producers/consumers in v1 — the registry is in-process memory, correct

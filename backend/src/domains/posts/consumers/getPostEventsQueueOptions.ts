@@ -6,5 +6,5 @@ export type PostEventsQueueOptions = {
 
 // Queue options for this instance's binding to the posts.events exchange.
 export function getPostEventsQueueOptions(): PostEventsQueueOptions {
-  return { name: 'posts-events-queue', exclusive: false, autoDelete: false }
+  return { name: '', exclusive: true, autoDelete: true }
 }

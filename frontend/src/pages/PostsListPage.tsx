@@ -47,17 +47,19 @@ export function PostsListPage() {
     <div className="w-full max-w-2xl space-y-8">
       <form
         className="space-y-3 rounded-md border border-border bg-muted/40 p-4"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault()
           if (!title.trim() || !description.trim()) return
-          createPost({ variables: { input: { title, description } } })
-          const now = new Date().toISOString()
-          updateQuery((prev) => ({
-            posts: [
-              { id: crypto.randomUUID(), title, description, createdAt: now, updatedAt: now },
-              ...prev.posts,
-            ],
-          }))
+          const { data: created } = await createPost({
+            variables: { input: { title, description } },
+          })
+          if (created?.createPost) {
+            const post = created.createPost
+            updateQuery((prev) => {
+              if (prev.posts.some((existing) => existing.id === post.id)) return prev
+              return { posts: [post, ...prev.posts] }
+            })
+          }
           setTitle('')
           setDescription('')
         }}
