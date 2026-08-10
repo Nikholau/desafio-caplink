@@ -1,8 +1,9 @@
 # Bugs encontrados e correções
 
-Sete bugs encontrados nas quatro áreas apontadas no README (lógica de domínio, wiring de DI,
+Oito bugs encontrados nas quatro áreas apontadas no README (lógica de domínio, wiring de DI,
 camada RabbitMQ/realtime e frontend). Os cinco primeiros já tinham teste unitário cobrindo
-(estavam falhando antes da correção); os dois últimos só apareciam usando o app.
+(estavam falhando antes da correção); os demais só apareciam usando o app ou sob revisão de
+arquitetura/carga.
 
 ## 1. Tópicos de evento invertidos (RabbitMQ/realtime)
 
@@ -73,6 +74,32 @@ muda, o efeito nunca reexecuta quando o dado chega, e o formulário abre com os 
 Se salvo sem perceber, o título e a descrição reais do post eram apagados. Corrigido preenchendo
 os campos diretamente no clique do botão "Edit" (nesse ponto o post já está garantidamente
 carregado, pelos guards de `loading`/`error` acima).
+
+## 8. Vazamento de conexão AMQP no producer de eventos
+
+**Arquivo:** `backend/src/domains/posts/index.ts`
+
+`registerPostsDomain` registrava `POST_EVENTS_PRODUCER` com `container.register(TOKEN, { useFactory: ... })`
+sem cache de instância. O tipo `FactoryProvider` do tsyringe documenta explicitamente que
+`useFactory` **não** faz cache da instância — cada `container.resolve`/injeção cria uma
+`PostEventsProducer` nova, e cada uma abre sua própria conexão TCP com o RabbitMQ na primeira
+publicação (`ensureChannel` → `amqp.connect`), sem nunca fechar as anteriores. Como o
+`type-graphql` resolve os resolvers (e portanto os use cases e o producer injetado) por
+requisição, cada `createPost`/`editPost` vazava uma conexão AMQP nova.
+
+**Como foi encontrado:** ao aplicar uma revisão de arquitetura/DI no wiring do container,
+notei que este registro — ao contrário de `PRISMA_CLIENT`/`PUBSUB` (via `registerInstance`) —
+não garantia instância única. Confirmei empiricamente: subi a stack localmente (Postgres +
+RabbitMQ via Homebrew, sem Docker nesta máquina) e, com `lsof -iTCP:5672`, vi o número de
+conexões TCP estabelecidas crescer em +1 a cada `createPost` disparado via curl (5 mutations
+→ 5 conexões novas, nunca fechadas). Em produção, sob uso normal, isso esgotaria conexões/file
+descriptors do broker.
+
+**Correção:** trocado para `container.registerInstance(POST_EVENTS_PRODUCER, new
+PostEventsProducer(...))` — mesmo padrão já usado no projeto para `PRISMA_CLIENT`/`PUBSUB`,
+instanciando uma vez no bootstrap e reaproveitando a mesma conexão/canal para todas as
+publicações. Reproduzi o mesmo teste depois da correção: 10 mutations consecutivas mantiveram
+o número de conexões estável (consumer + 1 producer), sem crescer.
 
 ---
 

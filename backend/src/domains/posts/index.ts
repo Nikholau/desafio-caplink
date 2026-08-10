@@ -7,9 +7,7 @@ import { startPostEventsConsumer } from './consumers/PostEventsConsumer.js'
 
 export function registerPostsDomain(container: DependencyContainer): void {
   container.register(POST_REPOSITORY, { useClass: PrismaPostRepository })
-  container.register(POST_EVENTS_PRODUCER, {
-    useFactory: () => new PostEventsProducer(process.env.RABBITMQ_URL!),
-  })
+  container.registerInstance(POST_EVENTS_PRODUCER, new PostEventsProducer(process.env.RABBITMQ_URL!))
 }
 
 export async function startPostsConsumers(): Promise<void> {
